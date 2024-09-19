@@ -132,6 +132,37 @@ app.post('/send-message', async (req: Request, res: Response) => {
   }
 });
 
+//Endpoint para pegar as informações do perfil conectado
+app.get('/whatsapp-info', async (req: Request, res: Response) => {
+  try {
+    const state = await client.getState();
+
+    if (state === 'CONNECTED') {
+      const userInfo = client.info;
+
+      // Obter a foto de perfil
+      const profilePicUrl = await client.getProfilePicUrl(userInfo.wid._serialized);
+
+      res.json({
+        connected: true,
+        userPhone: userInfo.wid.user,
+        userName: userInfo.pushname,
+        profilePic: profilePicUrl || 'Sem foto de perfil',
+      });
+    } else {
+      res.json({
+        connected: false,
+        message: 'WhatsApp não está conectado',
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao pegar informações do WhatsApp:', error);
+    res.status(500).json({ error: 'Erro ao pegar informações do WhatsApp' });
+  }
+});
+
+
+
 // Endpoint para deslogar e reinicializar o cliente do WhatsApp
 app.post('/logout', async (req: Request, res: Response) => {
   try {

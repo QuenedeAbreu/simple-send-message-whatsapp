@@ -248,6 +248,48 @@
       top: 0;
       margin-top: -40px;
     }
+
+    .user-info {
+      margin-bottom: 1rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0px 12px 15px -12px #000000;
+    }
+
+    #profilePic {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 2px solid #28a745;
+      margin-bottom: 10px;
+    }
+
+    #userName {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    #userNumber,
+    #userStatus {
+      font-size: 1rem;
+    }
+
+    .status {
+      font-style: italic;
+    }
+
+    .user-info .status {
+      font-weight: bold;
+      color: green;
+    }
+
+    .user-info .not-logged {
+      color: red;
+    }
   </style>
 </head>
 
@@ -255,7 +297,14 @@
 
   <div class="container" id="messageContainer" style="display:none;">
 
-    <h1>Envie uma Mensagem via WhatsApp</h1>
+    <div class="user-info" id="userInfo" style="display:none;">
+      <img id="profilePic" src="" alt="Imagem de Perfil">
+      <p id="userName"></p>
+      <p id="userNumber"></p>
+      <p id="userStatus" class="status"></p>
+    </div>
+
+    <h4 style="margin-bottom: 10px;">Envie uma Mensagem via WhatsApp</h4>
     <form id="sendMessageForm" class="form">
       <div class="form-group">
         <label for="phoneNumber">Número de Telefone (com DDI):</label>
@@ -315,7 +364,28 @@
   </div>
 
   <script>
+
+    const userInfo = document.getElementById('userInfo');
+    const userName = document.getElementById('userName');
+    const userNumber = document.getElementById('userNumber');
+    const userStatus = document.getElementById('userStatus');
+    const profilePic = document.getElementById('profilePic');
     var pollingInterval;
+
+    const loadUserInfo = async () => {
+      const response = await fetch('http://localhost:3000/whatsapp-info');
+      const data = await response.json();
+      if (data) {
+        // console.log(data);
+        userName.innerText = ` ${data.userName}`;
+        userNumber.innerText = `${data.userPhone}`;
+        userStatus.innerText = data.connected ? 'Conectado' : 'Desconectado';
+        userStatus.className = data.connected ? 'status' : 'status not-logged';
+        profilePic.src = data.profilePic;
+        userInfo.style.display = 'flex';
+      }
+    };
+
 
     async function checkConnection() {
       try {
@@ -327,6 +397,7 @@
         if (data.connected) {
           qrContainer.style.display = 'none';
           messageContainer.style.display = 'block';
+          loadUserInfo(); // Carregar informações do usuário
           if (pollingInterval) clearInterval(pollingInterval); // Para o polling
         } else {
           qrContainer.style.display = 'flex';
@@ -356,6 +427,7 @@
           qrCodeImage.style.display = 'block';
           spinner.style.display = 'none';
           qrResponse.innerText = '';
+
           checkConnection()
         } else {
           checkConnection()
