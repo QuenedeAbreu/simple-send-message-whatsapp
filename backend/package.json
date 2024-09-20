@@ -21,6 +21,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "qrcode": "^1.5.4",
+    "socket.io": "^4.7.5",
     "whatsapp-web.js": "^1.23.0"
   }
 }

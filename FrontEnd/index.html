@@ -4,6 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="./socket.io/socket.io.js"></script>
+
   <title>WhatsApp Integration</title>
   <style>
     * {
@@ -290,10 +292,35 @@
     .user-info .not-logged {
       color: red;
     }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #4caf50;
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      transition: opacity 0.5s, transform 0.5s;
+      transform: translateY(-20px);
+    }
+
+    .notification.show {
+      display: block !important;
+      opacity: 1 !important;
+      transform: translateY(0);
+    }
   </style>
 </head>
 
 <body>
+  <div class="notification" id="notification" style="display:none;">
+
+    <p id="notificationAuthor"></p>
+    <p id="notificationMessage"></p>
+  </div>
 
   <div class="container" id="messageContainer" style="display:none;">
 
@@ -363,8 +390,10 @@
     </div>
   </div>
 
-  <script>
 
+
+  <script>
+    const socket = io('http://localhost:3000');
     const userInfo = document.getElementById('userInfo');
     const userName = document.getElementById('userName');
     const userNumber = document.getElementById('userNumber');
@@ -559,6 +588,38 @@
 
     //   checkConnection();
     // }
+
+    // Notificações 
+    if (Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+    function notifyUser(message) {
+      if (Notification.permission === "granted") {
+        new Notification("Whatsapp", {
+          body: message.author,
+          icon: "./imgs/icon-notification.png" // Se quiser adicionar um ícone
+        });
+      }
+    }
+
+    function showNotification(message) {
+      const notification = document.getElementById("notification");
+      const notificationAuthor = document.getElementById("notificationAuthor");
+      const notificationMessage = document.getElementById("notificationMessage");
+
+      notificationAuthor.textContent = `De:${message.author} `;
+      notificationMessage.textContent = `Mensagem: ${message.body}`;
+      notification.classList.add("show");
+
+      setTimeout(() => {
+        notification.classList.remove("show");
+      }, 5000); // Notificação desaparece após 5 segundos
+    }
+    // Exemplo de WebSocket ou outro método de receber a mensagem
+    socket.on("newMessage", (message) => {
+      showNotification(message); // Exibe a notificação customizada
+      notifyUser(message); // Exibe a notificação do navegador (opcional)
+    });
     checkConnection();
   </script>
 

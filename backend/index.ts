@@ -4,12 +4,33 @@ import qrcode from 'qrcode';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
-
+import { Server } from 'socket.io';
+import http from 'http';
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server,{
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+    credentials: true
+}
+});
 const port = 3000;
 let qrCodeData: string = ''; // Armazena o QR code gerado
 const sessionPath = './.wwebjs_auth'; // Caminho da sessão
 let client: Client; // Variável global para o cliente do WhatsApp
+
+
+io.on('connection', (socket) => {
+  console.log('Usuário conectado');
+
+  // Quando o usuário desconectar
+  socket.on('disconnect', () => {
+    console.log('Usuário desconectado');
+  });
+});
+
+
 
 // Middleware para lidar com JSON
 app.use(express.json());
@@ -44,12 +65,27 @@ function initializeWhatsAppClient() {
   client.on('ready', () => {
     console.log('Cliente do WhatsApp está pronto!');
   });
+  client.on('message_create',async (mensagem) =>{
+    // Obter o nome do contato que enviou a mensagem
+    const contact = await mensagem.getContact();
+    const contactName = contact.pushname || contact.name || 'Desconhecido';
+
+    io.emit('newMessage',{
+      body:mensagem.body,
+      author: contactName
+    });
+  })
 
   client.initialize();
 }
 
+
+
 // Inicializar o cliente ao iniciar o servidor
 initializeWhatsAppClient();
+
+
+
 
 // Endpoint para servir o QR code ao frontend
 app.get('/qr', (req: Request, res: Response) => {
@@ -92,7 +128,6 @@ app.get('/list-groups', async (req: Request, res: Response) => {
 });
 
 // Endpoint para listar conversas do WhatsApp
-// Endpoint para listar conversas do WhatsApp
 app.get('/list-chats', async (req: Request, res: Response) => {
   try {
     const chats = await client.getChats();
@@ -112,7 +147,6 @@ app.get('/list-chats', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Erro ao listar conversas' });
   }
 });
-
 
 // Endpoint para enviar mensagens para um número específico
 app.post('/send-message', async (req: Request, res: Response) => {
@@ -162,7 +196,6 @@ app.get('/whatsapp-info', async (req: Request, res: Response) => {
 });
 
 
-
 // Endpoint para deslogar e reinicializar o cliente do WhatsApp
 app.post('/logout', async (req: Request, res: Response) => {
   try {
@@ -193,6 +226,6 @@ app.post('/logout', async (req: Request, res: Response) => {
 });
 
 // Inicializa o servidor Express
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
